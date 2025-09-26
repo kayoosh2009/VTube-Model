@@ -40,6 +40,7 @@
       border-radius: 5px;
       cursor: pointer;
       color: white;
+      font-size: 14px;
     }
     #secret-button:hover {
       opacity: 1;
@@ -47,6 +48,11 @@
     }
     #secret-button.show {
       opacity: 0.2;
+    }
+
+    /* Скрытие ползунка */
+    .hidden {
+      display: none;
     }
   </style>
 </head>
@@ -57,7 +63,7 @@
   <input type="range" id="volume-control" min="0" max="0.3" step="0.01" value="0.05">
 
   <!-- Скрытая кнопка -->
-  <button id="secret-button" class="show">Секрет</button>
+  <button id="secret-button" class="show">⚙</button>
 
   <script>
     const avatar = document.getElementById("avatar");
@@ -65,29 +71,45 @@
     const secretButton = document.getElementById("secret-button");
 
     const images = {
-      idle: "img/idle.png",
-      blink: "img/blink.png",
-      talk: "img/talk.png",
-      talk_blink: "img/talk_blink.png"
+      idle: "img/idle.png",          // рот закрыт, глаза открыты
+      blink: "img/blink.png",        // рот закрыт, глаза закрыты
+      talk: "img/talk.png",          // рот открыт, глаза открыты
+      talk_blink: "img/talk_blink.png" // рот открыт, глаза закрыты
     };
 
     let isBlinking = false;
     let isTalking = false;
     let threshold = parseFloat(volumeControl.value);
 
-    // ---- Моргание ----
+    // ---- Скрыть/показать ползунок по кнопке ----
+    secretButton.addEventListener("click", () => {
+      volumeControl.classList.toggle("hidden");
+    });
+
+    // ---- Моргание: каждые 3 секунды двойное ----
     function startBlinking() {
-      const blinkDelay = Math.random() * 3000 + 3000; // 3-6 секунд
+      setInterval(() => {
+        blinkTwice();
+      }, 3000);
+    }
+
+    function blinkTwice() {
+      isBlinking = true;
+      updateAvatar();
       setTimeout(() => {
-        isBlinking = true;
+        isBlinking = false;
         updateAvatar();
         setTimeout(() => {
-          isBlinking = false;
+          isBlinking = true;
           updateAvatar();
-        }, 200); // длительность моргания
-        startBlinking();
-      }, blinkDelay);
+          setTimeout(() => {
+            isBlinking = false;
+            updateAvatar();
+          }, 150); // вторая фаза (закрытие)
+        }, 150); // пауза между морганиями
+      }, 150); // первая фаза (закрытие)
     }
+
     startBlinking();
 
     // ---- Ползунок громкости ----
