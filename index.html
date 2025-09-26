@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>VTuber</title>
+  <style>
+    body {
+      margin: 0;
+      background: transparent; /* прозрачный фон */
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    img {
+      max-height: 90vh;
+      pointer-events: none;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <img id="avatar" src="img/idle.png" alt="avatar">
+
+  <script>
+    const avatar = document.getElementById("avatar");
+
+    const images = {
+      idle: "img/idle.png",          // рот закрыт, глаза открыты
+      blink: "img/blink.png",        // рот закрыт, глаза закрыты
+      talk: "img/talk.png",          // рот открыт, глаза открыты
+      talk_blink: "img/talk_blink.png" // рот открыт, глаза закрыты
+    };
+
+    const THRESHOLD = 0.05; // порог громкости
+    let isBlinking = false;
+    let isTalking = false;
+
+    // ---- Моргание ----
+    function startBlinking() {
+      const blinkDelay = Math.random() * 3000 + 3000; // 3-6 секунд
+      setTimeout(() => {
+        isBlinking = true;
+        updateAvatar();
+        setTimeout(() => {
+          isBlinking = false;
+          updateAvatar();
+        }, 200); // длительность моргания
+        startBlinking();
+      }, blinkDelay);
+    }
+    startBlinking();
+
+    // ---- Микрофон ----
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+      const audioCtx = new AudioContext();
+      const source = audioCtx.createMediaStreamSource(stream);
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      source.connect(analyser);
+
+      function checkVolume() {
+        analyser.getByteFrequencyData(dataArray);
+        let values = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          values += dataArray[i];
+        }
+        let average = values / dataArray.length / 255; // 0–1
+
+        isTalking = average > THRESHOLD;
+        updateAvatar();
+
+        requestAnimationFrame(checkVolume);
+      }
+
+      checkVolume();
+    }).catch(err => {
+      console.error("Ошибка доступа к микрофону:", err);
+    });
+
+    // ---- Обновление картинки ----
+    function updateAvatar() {
+      if (isTalking && isBlinking) {
+        avatar.src = images.talk_blink;
+      } else if (isTalking && !isBlinking) {
+        avatar.src = images.talk;
+      } else if (!isTalking && isBlinking) {
+        avatar.src = images.blink;
+      } else {
+        avatar.src = images.idle;
+      }
+    }
+  </script>
+</body>
+</html>
